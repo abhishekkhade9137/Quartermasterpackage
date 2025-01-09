@@ -8,6 +8,7 @@ import {
   TextInput,
   Button,
   FlatList,
+  TouchableOpacity,
   Dimensions,
   Alert,
 } from 'react-native';
@@ -34,20 +35,46 @@ function InventoryScreen() {
   const { inventory, setInventory } = useContext(InventoryContext);
   const [itemName, setItemName] = useState('');
   const [itemQuantity, setItemQuantity] = useState('');
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
   const addItem = () => {
     if (itemName.trim() && itemQuantity.trim() && !isNaN(Number(itemQuantity))) {
-      const newItem: InventoryItem = {
-        id: Math.random().toString(),
-        name: itemName,
-        quantity: itemQuantity,
-      };
-      setInventory((prevInventory: any) => [...prevInventory, newItem]);
+      if (editingItem) {
+        // Edit existing item
+        setInventory((prevInventory: any) =>
+          prevInventory.map((item: any) =>
+            item.id === editingItem.id
+              ? { ...item, name: itemName, quantity: itemQuantity }
+              : item
+          )
+        );
+        setEditingItem(null);
+      } else {
+        // Add new item
+        const newItem: InventoryItem = {
+          id: Math.random().toString(),
+          name: itemName,
+          quantity: itemQuantity,
+        };
+        setInventory((prevInventory: any) => [...prevInventory, newItem]);
+      }
       setItemName('');
       setItemQuantity('');
     } else {
       Alert.alert('Invalid Input', 'Please enter valid item name and quantity.');
     }
+  };
+
+  const deleteItem = (id: string) => {
+    setInventory((prevInventory: any) =>
+      prevInventory.filter((item: any) => item.id !== id)
+    );
+  };
+
+  const startEditing = (item: InventoryItem) => {
+    setItemName(item.name);
+    setItemQuantity(item.quantity);
+    setEditingItem(item);
   };
 
   return (
@@ -65,7 +92,10 @@ function InventoryScreen() {
         onChangeText={setItemQuantity}
         keyboardType="numeric"
       />
-      <Button title="Add Item" onPress={addItem} />
+      <Button
+        title={editingItem ? 'Update Item' : 'Add Item'}
+        onPress={addItem}
+      />
 
       <Text style={styles.listTitle}>Inventory List</Text>
       <FlatList
@@ -73,8 +103,24 @@ function InventoryScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.listItem}>
-            <Text style={styles.itemText}>{item.name}</Text>
-            <Text style={styles.itemText}>Quantity: {item.quantity}</Text>
+            <View>
+              <Text style={styles.itemText}>{item.name}</Text>
+              <Text style={styles.itemText}>Quantity: {item.quantity}</Text>
+            </View>
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => startEditing(item)}
+              >
+                <Text style={styles.buttonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => deleteItem(item.id)}
+              >
+                <Text style={styles.buttonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       />
@@ -217,9 +263,28 @@ const styles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 10,
     borderBottomWidth: 1,
     borderColor: '#ccc',
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+  },
+  editButton: {
+    backgroundColor: '#ffa500',
+    padding: 8,
+    borderRadius: 5,
+    marginRight: 5,
+  },
+  deleteButton: {
+    backgroundColor: '#ff0000',
+    padding: 8,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
   },
   itemText: {
     fontSize: 16,
