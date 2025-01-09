@@ -1,117 +1,180 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, { useState } from 'react';
 import {
   SafeAreaView,
-  ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
-  useColorScheme,
   View,
+  Text,
+  TextInput,
+  Button,
+  ScrollView,
+  Dimensions,
+  Alert,
 } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { PieChart, BarChart } from 'react-native-chart-kit';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const Tab = createBottomTabNavigator();
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+type InventoryItem = {
+  id: string;
+  name: string;
+  quantity: string;
+};
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+function InventoryScreen({ setInventory }: { setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>> }) {
+  const [itemName, setItemName] = useState('');
+  const [itemQuantity, setItemQuantity] = useState('');
+
+  const addItem = () => {
+    if (itemName.trim() && itemQuantity.trim() && !isNaN(Number(itemQuantity))) {
+      const newItem: InventoryItem = {
+        id: Math.random().toString(),
+        name: itemName,
+        quantity: itemQuantity,
+      };
+      setInventory((prevInventory) => [...prevInventory, newItem]);
+      setItemName('');
+      setItemQuantity('');
+    } else {
+      Alert.alert('Invalid Input', 'Please enter valid item name and quantity.');
+    }
+  };
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.content}>
+      <TextInput
+        style={styles.input}
+        placeholder="Item Name"
+        value={itemName}
+        onChangeText={setItemName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Quantity"
+        value={itemQuantity}
+        onChangeText={setItemQuantity}
+        keyboardType="numeric"
+      />
+      <Button title="Add Item" onPress={addItem} />
     </View>
   );
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+function DashboardScreen({ inventory }: { inventory: InventoryItem[] }) {
+  const pieChartData = inventory.map((item) => ({
+    name: item.name,
+    population: parseFloat(item.quantity),
+    color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+    legendFontColor: '#7F7F7F',
+    legendFontSize: 15,
+  }));
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const barChartData = {
+    labels: inventory.map((item) => item.name),
+    datasets: [
+      {
+        data: inventory.map((item) => parseFloat(item.quantity)),
+      },
+    ],
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
+    <ScrollView style={styles.content}>
+      <Text style={styles.dashboardText}>Inventory Overview</Text>
+      <Text style={styles.chartTitle}>Pie Chart</Text>
+      <PieChart
+        data={pieChartData}
+        width={Dimensions.get('window').width - 32}
+        height={220}
+        chartConfig={{
+          backgroundColor: '#ffffff',
+          backgroundGradientFrom: '#ffffff',
+          backgroundGradientTo: '#ffffff',
+          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+        }}
+        accessor="population"
+        backgroundColor="transparent"
+        paddingLeft="15"
+        absolute
+      />
+      <Text style={styles.chartTitle}>Bar Chart</Text>
+      <BarChart
+        data={barChartData}
+        width={Dimensions.get('window').width - 32}
+        height={220}
+        chartConfig={{
+          backgroundColor: '#ffffff',
+          backgroundGradientFrom: '#ffffff',
+          backgroundGradientTo: '#ffffff',
+          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+        }}
+        style={{ marginVertical: 8 }}
+      />
+    </ScrollView>
+  );
+}
+
+function App(): React.JSX.Element {
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const backgroundStyle = {
+    backgroundColor: '#ffffff',
+  };
+
+  return (
+    <SafeAreaView style={[backgroundStyle, styles.container]}>
       <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+        barStyle="dark-content"
         backgroundColor={backgroundStyle.backgroundColor}
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+      <NavigationContainer>
+        <Tab.Navigator
+          screenOptions={{
+            tabBarActiveTintColor: 'tomato',
+            tabBarInactiveTintColor: 'gray',
+          }}
+        >
+          <Tab.Screen
+            name="Dashboard"
+            children={() => <DashboardScreen inventory={inventory} />}
+            options={{ tabBarLabel: 'Dashboard' }}
+          />
+          <Tab.Screen
+            name="Inventory"
+            children={() => <InventoryScreen setInventory={setInventory} />}
+            options={{ tabBarLabel: 'Inventory' }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  content: {
+    flex: 1,
+    padding: 16,
   },
-  sectionDescription: {
-    marginTop: 8,
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  dashboardText: {
     fontSize: 18,
-    fontWeight: '400',
+    textAlign: 'center',
+    marginVertical: 10,
   },
-  highlight: {
-    fontWeight: '700',
+  chartTitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginVertical: 10,
   },
 });
 
