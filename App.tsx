@@ -1,16 +1,16 @@
+import React, { useState } from 'react';
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import {
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  View,
-  Text,
-  TextInput,
-  Button,
+SafeAreaView,
+StatusBar,
+@@ -7,23 +7,31 @@ import {
+Text,
+TextInput,
+Button,
+  ScrollView,
   FlatList,
-  TouchableOpacity,
-  Dimensions,
-  Alert,
+Dimensions,
+Alert,
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -26,76 +26,30 @@ const InventoryContext = createContext({
 });
 
 type InventoryItem = {
-  id: string;
-  name: string;
-  quantity: string;
+id: string;
+name: string;
+quantity: string;
 };
 
+function InventoryScreen({ setInventory }: { setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>> }) {
 function InventoryScreen() {
   const { inventory, setInventory } = useContext(InventoryContext);
-  const [itemName, setItemName] = useState('');
-  const [itemQuantity, setItemQuantity] = useState('');
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+const [itemName, setItemName] = useState('');
+const [itemQuantity, setItemQuantity] = useState('');
 
-  const addItem = () => {
-    if (itemName.trim() && itemQuantity.trim() && !isNaN(Number(itemQuantity))) {
-      if (editingItem) {
-        // Edit existing item
-        setInventory((prevInventory: any) =>
-          prevInventory.map((item: any) =>
-            item.id === editingItem.id
-              ? { ...item, name: itemName, quantity: itemQuantity }
-              : item
-          )
-        );
-        setEditingItem(null);
-      } else {
-        // Add new item
-        const newItem: InventoryItem = {
-          id: Math.random().toString(),
-          name: itemName,
-          quantity: itemQuantity,
-        };
-        setInventory((prevInventory: any) => [...prevInventory, newItem]);
-      }
-      setItemName('');
-      setItemQuantity('');
-    } else {
-      Alert.alert('Invalid Input', 'Please enter valid item name and quantity.');
-    }
-  };
-
-  const deleteItem = (id: string) => {
-    setInventory((prevInventory: any) =>
-      prevInventory.filter((item: any) => item.id !== id)
-    );
-  };
-
-  const startEditing = (item: InventoryItem) => {
-    setItemName(item.name);
-    setItemQuantity(item.quantity);
-    setEditingItem(item);
-  };
-
-  return (
-    <View style={styles.content}>
-      <TextInput
-        style={styles.input}
-        placeholder="Item Name"
-        value={itemName}
-        onChangeText={setItemName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Quantity"
-        value={itemQuantity}
-        onChangeText={setItemQuantity}
-        keyboardType="numeric"
-      />
-      <Button
-        title={editingItem ? 'Update Item' : 'Add Item'}
-        onPress={addItem}
-      />
+@@ -34,7 +42,7 @@ function InventoryScreen({ setInventory }: { setInventory: React.Dispatch<React.
+name: itemName,
+quantity: itemQuantity,
+};
+      setInventory((prevInventory) => [...prevInventory, newItem]);
+      setInventory((prevInventory: any) => [...prevInventory, newItem]);
+setItemName('');
+setItemQuantity('');
+} else {
+@@ -58,30 +66,44 @@ function InventoryScreen({ setInventory }: { setInventory: React.Dispatch<React.
+keyboardType="numeric"
+/>
+<Button title="Add Item" onPress={addItem} />
 
       <Text style={styles.listTitle}>Inventory List</Text>
       <FlatList
@@ -103,89 +57,60 @@ function InventoryScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.listItem}>
-            <View>
-              <Text style={styles.itemText}>{item.name}</Text>
-              <Text style={styles.itemText}>Quantity: {item.quantity}</Text>
-            </View>
-            <View style={styles.buttonGroup}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => startEditing(item)}
-              >
-                <Text style={styles.buttonText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => deleteItem(item.id)}
-              >
-                <Text style={styles.buttonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.itemText}>{item.name}</Text>
+            <Text style={styles.itemText}>Quantity: {item.quantity}</Text>
           </View>
         )}
       />
-    </View>
-  );
+</View>
+);
 }
 
+function DashboardScreen({ inventory }: { inventory: InventoryItem[] }) {
+  const pieChartData = inventory.map((item) => ({
 function DashboardScreen() {
   const { inventory } = useContext(InventoryContext);
 
   const pieChartData = inventory.map((item: any) => ({
-    name: item.name,
-    population: parseFloat(item.quantity),
+name: item.name,
+population: parseFloat(item.quantity),
+    color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
     color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`,
-    legendFontColor: '#7F7F7F',
-    legendFontSize: 15,
-  }));
+legendFontColor: '#7F7F7F',
+legendFontSize: 15,
+}));
 
-  const barChartData = {
+const barChartData = {
+    labels: inventory.map((item) => item.name),
     labels: inventory.map((item: any) => item.name),
-    datasets: [
-      {
+datasets: [
+{
+        data: inventory.map((item) => parseFloat(item.quantity)),
         data: inventory.map((item: any) => parseFloat(item.quantity)),
-      },
-    ],
-  };
+},
+],
+};
 
-  return (
+return (
+    <ScrollView style={styles.content}>
     <View style={styles.content}>
-      <Text style={styles.dashboardText}>Inventory Overview</Text>
-      <Text style={styles.chartTitle}>Pie Chart</Text>
-      <PieChart
-        data={pieChartData}
-        width={Dimensions.get('window').width - 32}
-        height={220}
-        chartConfig={{
-          backgroundColor: '#ffffff',
-          backgroundGradientFrom: '#ffffff',
-          backgroundGradientTo: '#ffffff',
-          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-        }}
-        accessor="population"
-        backgroundColor="transparent"
-        paddingLeft="15"
-        absolute
-      />
-      <Text style={styles.chartTitle}>Bar Chart</Text>
-      <BarChart
-        data={barChartData}
-        width={Dimensions.get('window').width - 32}
-        height={220}
-        chartConfig={{
-          backgroundColor: '#ffffff',
-          backgroundGradientFrom: '#ffffff',
-          backgroundGradientTo: '#ffffff',
-          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-        }}
-        style={{ marginVertical: 8 }}
-      />
+<Text style={styles.dashboardText}>Inventory Overview</Text>
+<Text style={styles.chartTitle}>Pie Chart</Text>
+<PieChart
+@@ -112,42 +134,63 @@ function DashboardScreen({ inventory }: { inventory: InventoryItem[] }) {
+}}
+style={{ marginVertical: 8 }}
+/>
+    </ScrollView>
     </View>
-  );
+);
 }
 
 function App(): React.JSX.Element {
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const backgroundStyle = {
+    backgroundColor: '#ffffff',
+  };
 
   useEffect(() => {
     const loadInventory = async () => {
@@ -212,7 +137,32 @@ function App(): React.JSX.Element {
     saveInventory();
   }, [inventory]);
 
-  return (
+return (
+    <SafeAreaView style={[backgroundStyle, styles.container]}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={backgroundStyle.backgroundColor}
+      />
+      <NavigationContainer>
+        <Tab.Navigator
+          screenOptions={{
+            tabBarActiveTintColor: 'tomato',
+            tabBarInactiveTintColor: 'gray',
+          }}
+        >
+          <Tab.Screen
+            name="Dashboard"
+            children={() => <DashboardScreen inventory={inventory} />}
+            options={{ tabBarLabel: 'Dashboard' }}
+          />
+          <Tab.Screen
+            name="Inventory"
+            children={() => <InventoryScreen setInventory={setInventory} />}
+            options={{ tabBarLabel: 'Inventory' }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </SafeAreaView>
     <InventoryContext.Provider value={{ inventory, setInventory }}>
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -237,24 +187,13 @@ function App(): React.JSX.Element {
         </NavigationContainer>
       </SafeAreaView>
     </InventoryContext.Provider>
-  );
+);
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-  },
+@@ -166,6 +209,21 @@ const styles = StyleSheet.create({
+marginBottom: 12,
+paddingHorizontal: 8,
+},
   listTitle: {
     fontSize: 18,
     textAlign: 'center',
@@ -263,42 +202,19 @@ const styles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     padding: 10,
     borderBottomWidth: 1,
     borderColor: '#ccc',
   },
-  buttonGroup: {
-    flexDirection: 'row',
-  },
-  editButton: {
-    backgroundColor: '#ffa500',
-    padding: 8,
-    borderRadius: 5,
-    marginRight: 5,
-  },
-  deleteButton: {
-    backgroundColor: '#ff0000',
-    padding: 8,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-  },
   itemText: {
     fontSize: 16,
   },
-  dashboardText: {
-    fontSize: 18,
-    textAlign: 'center',
-    marginVertical: 10,
-  },
-  chartTitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginVertical: 10,
-  },
+dashboardText: {
+fontSize: 18,
+textAlign: 'center',
+@@ -178,4 +236,4 @@ const styles = StyleSheet.create({
+},
 });
 
+export default App;
 export default App;
